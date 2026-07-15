@@ -1,0 +1,31 @@
+name: pytorch_tft
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pytorch-cuda=12.1
+  - torchaudio
+  - torchvision
+  - pytorch
+  - pandas
+  - seaborn
+  - matplotlib
+  - scikit-learn
+  - ipykernel
+  - torchinfo
+  - mlflow
+  - tqdm
+  - ipywidgets
+  - torchmetrics
+  - openpyxl
+  - pytorch-forecasting
+  - lightning
+  - spacy
+  - spacy-model-en_core_web_sm
+  - sentence-transformers
+  - plotly
+  - nbformat
+  - hdbscan
+  - tensorboard
+  - optuna
+  - optuna-integration

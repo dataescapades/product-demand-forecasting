@@ -1,0 +1,213 @@
+# ===================================================================
+# FILE PATHS
+# ===================================================================
+FILE_PATHS:
+  engineered_data_v1: &DATA_V1 "data/online_retail_II_engineered.csv"
+  mlflow_log_dir_v1: &MLFLOW_V1 "logs/mlflow"
+  tensorboard_log_dir_v1: &TENSORBOARD_V1 "logs/tensorboard"
+  model_checkpoint_dir_v1: &MODEL_CHECKPOINT_V1 "models/checkpoints"
+
+# ===================================================================
+# GLOBAL DATA SCHEMA
+# ===================================================================
+# All features that can be used in any experiment must be defined in FEATURE_SCHEMA.
+# This is used in the pydantic model validator to ensure that all features specified
+# are valid names and data types. It is also used during data loading to enforce
+# consistent data types across all experiments.
+
+FEATURE_SCHEMA:
+  invoice_date: "datetime64[ns]"
+  stock_code: str
+  quantity: float32
+  price: float32
+  day_of_week: str
+  month: str
+  time_idx: int32
+  is_open: str
+  is_holiday: str
+  days_to_christmas_break: int32
+  christmas_break_countdown_90: int32
+  clean: str
+  product_color: str
+  category_level_1: str
+  category_level_2: str
+  category_level_3: str
+  category_level_4: str
+  is_discontinued: str
+  price_scaled: float32
+
+# ===================================================================
+# DEFAULT HYPERPARAMETERS
+# ===================================================================
+# All parameters that are specified during any step of the modeling pipeline
+# must be defined in MODEL_DEFAULTS. This is used in the pydantic model validator
+# to ensure that all required parameters are present and have valid values. It also
+# serves as a template for all experiment configurations, ensuring consistency and
+# providing a single source of truth for all model parameters.
+
+# ***ANYTHING ALTERED HERE MUST BE ACCOUNTED FOR IN model_schema.py***
+
+MODEL_DEFAULTS: &DEFAULTS
+  # file paths
+  data_path: *DATA_V1
+  mlflow_dir: *MLFLOW_V1
+  tensorboard_dir: *TENSORBOARD_V1
+  model_checkpoint_dir: *MODEL_CHECKPOINT_V1
+
+  # dataset and dataloader parameters
+  max_encoder_length: 90
+  min_encoder_length: 90
+  max_prediction_length: 30
+  normalizer_method: robust
+  normalizer_transformation: log1p
+  batch_size: 512
+
+  # trainer parameters
+  max_epochs: 5
+  accelerator: auto
+  devices: 1 # immutable - validated in pydantic schema
+  gradient_clip_val: 0.1
+  fast_dev_run: false # not automatically passed to training function
+
+  # tft parameters
+  learning_rate: 1e-3
+  hidden_size: 64
+  reduce_on_plateau_patience: 3
+  output_size: 5
+  dropout: 0.1
+  quantiles: [0.1, 0.25, 0.5, 0.75, 0.9]
+  loss: quantile
+  optimizer: ranger
+
+  # early stopping parameters
+  monitor: val_loss
+  min_delta: 1e-2
+  patience: 5
+  mode: min
+
+  # model variables
+  target: quantity # immutable - validated in pydantic schema
+  group_ids: ["stock_code"] # immutable - validated in pydantic schema
+  time_idx: time_idx # immutable - validated in pydantic schema
+  static_categoricals: ["stock_code"] # inclusion enforced in pydantic schema
+  static_reals: []
+  time_varying_known_categoricals: []
+  time_varying_known_reals: ["time_idx", "price_scaled"] # inclusion enforced in pydantic schema
+  time_varying_unknown_categoricals: []
+  time_varying_unknown_reals: ["quantity"] # inclusion enforced in pydantic schema
+
+  # logger parameters
+  log_model: true
+  experiment_name: "TFT_Demand_Forecasting"
+
+# ===================================================================
+# EXPERIMENT CONFIGURATIONS
+# ===================================================================
+# Each configuration MUST account for all parameters defined in MODEL_DEFAULTS,
+# either by inheriting from it or by explicitly defining the parameter with a value.
+# This ensures that all experiments are fully specified and can be validated against
+# the pydantic schema. MODEL_DEFAULTS should be used as the base for all configurations
+# to maintain consistency, and any parameters that differ should be explicitly overridden
+# in the specific configuration. It should also be noted that the name of the configuration
+# is used as the run name in logging and should be descriptive of the purpose of the
+# experiment.
+
+# No engineered or extracted features
+baseline:
+  <<: *DEFAULTS
+
+# Engineered time features - 90 days to Christmas break
+engineered_time_features:
+  <<: *DEFAULTS
+  time_varying_known_categoricals:
+    - day_of_week
+    - month
+    - is_open
+    - is_holiday
+    - is_discontinued
+  time_varying_known_reals:
+    - christmas_break_countdown_90
+
+
+# Engineered product features (all 4 levels) with time features
+engineered_category_features:
+  <<: *DEFAULTS
+  static_categoricals:
+    - category_level_1
+    - category_level_2
+    - category_level_3
+    - category_level_4
+  time_varying_known_categoricals:
+    - day_of_week
+    - month
+    - is_open
+    - is_holiday
+    - is_discontinued
+  time_varying_known_reals:
+    - christmas_break_countdown_90
+
+
+engineered_3_categories:
+  <<: *DEFAULTS
+  static_categoricals:
+    - category_level_1
+    - category_level_2
+    - category_level_3
+  time_varying_known_categoricals:
+    - day_of_week
+    - month
+    - is_open
+    - is_holiday
+    - is_discontinued
+  time_varying_known_reals:
+    - christmas_break_countdown_90
+
+
+engineered_2_categories:
+  <<: *DEFAULTS
+  static_categoricals:
+    - category_level_1
+    - category_level_2
+  time_varying_known_categoricals:
+    - day_of_week
+    - month
+    - is_open
+    - is_holiday
+    - is_discontinued
+  time_varying_known_reals:
+    - christmas_break_countdown_90
+
+
+engineered_1_category:
+  <<: *DEFAULTS
+  static_categoricals:
+    - category_level_1
+    - category_level_2
+    - category_level_3
+  time_varying_known_categoricals:
+    - day_of_week
+    - month
+    - is_open
+    - is_holiday
+    - is_discontinued
+  time_varying_known_reals:
+    - christmas_break_countdown_90
+
+
+final_experiment:
+  <<: *DEFAULTS
+  static_categoricals:
+    - category_level_1
+    - category_level_2
+    - category_level_3
+  time_varying_known_categoricals:
+    - day_of_week
+    - month
+    - is_open
+    - is_holiday
+    - is_discontinued
+  time_varying_known_reals:
+    - christmas_break_countdown_90
+  dropout: 0.06
+  hidden_size: 128
+  max_epochs: 50

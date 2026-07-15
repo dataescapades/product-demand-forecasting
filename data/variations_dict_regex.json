@@ -1,0 +1,18 @@
+{
+    "set of ": [
+        "^s/",
+        "^set/",
+        "^pack/",
+        "^pack of "
+    ],
+    " ": [
+        "\\s*&\\s*",
+        "\\s*\\+\\s*",
+        "\\s*/\\s*"
+    ],
+    "flower fairy": [
+        "^f.fairy",
+        "^flwr fairy",
+        "^f fairy"
+    ]
+}
