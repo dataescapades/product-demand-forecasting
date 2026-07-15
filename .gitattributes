@@ -1,1 +1,7 @@
-*.html linguist-detectable=false
+*.md linguist-detectable=false
+
+executed_notebooks/* linguist-documentation
+data/* linguist-documentation
+images/* linguist-documentation
+logs/* linguist-documentation
+models/* linguist-documentation
